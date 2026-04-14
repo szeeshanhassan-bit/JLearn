@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>JSLingo – Learn JavaScript</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:#0a0a0f;color:#e5e7eb;height:100vh;overflow:hidden}
+  ::-webkit-scrollbar{width:6px;height:6px}
+  ::-webkit-scrollbar-track{background:#111}
+  ::-webkit-scrollbar-thumb{background:#374151;border-radius:3px}
+  textarea{font-family:'Courier New',monospace}
+  .sidebar-enter{transform:translateX(-100%)}
+  @media(min-width:1024px){.lg-flex{display:flex!important}.lg-hidden{display:none!important}.lg-w-72{width:18rem}.lg-border-r{border-right:1px solid #1f2937}.lg-border-b-none{border-bottom:none}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useCallback } = React;
+
+// ── YOUR ANTHROPIC API KEY ──────────────────────────────────────────────────
+// Replace the empty string below with your key from https://console.anthropic.com
+const ANTHROPIC_API_KEY = "";
+// ────────────────────────────────────────────────────────────────────────────
+
+const LEVELS = [
+  {id:1,cat:"Beginner",title:"Hello World",desc:"Your very first JavaScript program.",task:"Use console.log() to print 'Hello, World!'",starter:"// Write your code here\n",expected:"Hello, World!",hint:"console.log('Hello, World!')",sol:"console.log('Hello, World!');"},
+  {id:2,cat:"Beginner",title:"var Variables",desc:"Declare variables using the old-school var keyword.",task:"Declare a var named city with value 'Paris' and log it.",starter:"// Declare a var\n",expected:"Paris",hint:"var city = 'Paris'; console.log(city);",sol:"var city = 'Paris';\nconsole.log(city);"},
+  {id:3,cat:"Beginner",title:"let Variables",desc:"Use let for block-scoped mutable variables.",task:"Declare let score = 100 and log it.",starter:"// Declare let\n",expected:"100",hint:"let score = 100; console.log(score);",sol:"let score = 100;\nconsole.log(score);"},
+  {id:4,cat:"Beginner",title:"const Variables",desc:"Use const for values that never change.",task:"Declare const PI = 3.14159 and log it.",starter:"// Declare const\n",expected:"3.14159",hint:"const PI = 3.14159; console.log(PI);",sol:"const PI = 3.14159;\nconsole.log(PI);"},
+  {id:5,cat:"Beginner",title:"Data Types",desc:"JavaScript has 7 primitive types.",task:"Log the typeof each: 42, 'hello', true, null, undefined.",starter:"// Log types\n",expected:"number\nstring\nboolean\nobject\nundefined",hint:"console.log(typeof 42); console.log(typeof 'hello'); ...",sol:"console.log(typeof 42);\nconsole.log(typeof 'hello');\nconsole.log(typeof true);\nconsole.log(typeof null);\nconsole.log(typeof undefined);"},
+  {id:6,cat:"Beginner",title:"String Concatenation",desc:"Join strings with + operator.",task:"Combine firstName='John' and lastName='Doe', log 'John Doe'.",starter:"let firstName = 'John';\nlet lastName = 'Doe';\n",expected:"John Doe",hint:"console.log(firstName + ' ' + lastName);",sol:"let firstName = 'John';\nlet lastName = 'Doe';\nconsole.log(firstName + ' ' + lastName);"},
+  {id:7,cat:"Beginner",title:"Template Literals",desc:"Use backtick strings for easy interpolation.",task:"Log 'Hello, John! You are 30 years old.' using a template literal.",starter:"const name = 'John';\nconst age = 30;\n",expected:"Hello, John! You are 30 years old.",hint:"console.log(`Hello, ${name}! You are ${age} years old.`);",sol:"const name = 'John';\nconst age = 30;\nconsole.log(`Hello, ${name}! You are ${age} years old.`);"},
+  {id:8,cat:"Beginner",title:"Arithmetic Operators",desc:"Basic math operations in JS.",task:"Log: 10+3, 10-3, 10*3, 10/4, 10%3.",starter:"// Log each result\n",expected:"13\n7\n30\n2.5\n1",hint:"console.log(10+3); ...",sol:"console.log(10+3);\nconsole.log(10-3);\nconsole.log(10*3);\nconsole.log(10/4);\nconsole.log(10%3);"},
+  {id:9,cat:"Beginner",title:"Comparison Operators",desc:"Compare values and get booleans.",task:"Log: 5=='5', 5==='5', 10>3, 2!==3.",starter:"// Log comparisons\n",expected:"true\nfalse\ntrue\ntrue",hint:"console.log(5 == '5'); ...",sol:"console.log(5 == '5');\nconsole.log(5 === '5');\nconsole.log(10 > 3);\nconsole.log(2 !== 3);"},
+  {id:10,cat:"Beginner",title:"Logical Operators",desc:"Combine boolean expressions.",task:"Log: true && false, true || false, !true.",starter:"// Logical operators\n",expected:"false\ntrue\nfalse",hint:"console.log(true && false); ...",sol:"console.log(true && false);\nconsole.log(true || false);\nconsole.log(!true);"},
+  {id:11,cat:"Conditionals & Loops",title:"if / else",desc:"Branch code based on conditions.",task:"If x=15 is greater than 10, log 'big', else 'small'.",starter:"let x = 15;\n",expected:"big",hint:"if (x > 10) { console.log('big'); } else { console.log('small'); }",sol:"let x = 15;\nif (x > 10) {\n  console.log('big');\n} else {\n  console.log('small');\n}"},
+  {id:12,cat:"Conditionals & Loops",title:"else if Chain",desc:"Handle multiple conditions in sequence.",task:"For score=75: log 'A' if ≥90, 'B' if ≥75, else 'C'.",starter:"let score = 75;\n",expected:"B",hint:"if(score>=90){...}else if(score>=75){...}else{...}",sol:"let score = 75;\nif (score >= 90) {\n  console.log('A');\n} else if (score >= 75) {\n  console.log('B');\n} else {\n  console.log('C');\n}"},
+  {id:13,cat:"Conditionals & Loops",title:"Switch Statement",desc:"Match a value against multiple cases.",task:"For day='Monday', log 'Start of work week'.",starter:"let day = 'Monday';\n",expected:"Start of work week",hint:"switch(day){ case 'Monday': console.log(...); break; }",sol:"let day = 'Monday';\nswitch(day) {\n  case 'Monday':\n    console.log('Start of work week');\n    break;\n  default:\n    console.log('Another day');\n}"},
+  {id:14,cat:"Conditionals & Loops",title:"Ternary Operator",desc:"One-line conditional expressions.",task:"If age=20 >= 18, log 'adult', else 'minor'.",starter:"let age = 20;\n",expected:"adult",hint:"console.log(age >= 18 ? 'adult' : 'minor');",sol:"let age = 20;\nconsole.log(age >= 18 ? 'adult' : 'minor');"},
+  {id:15,cat:"Conditionals & Loops",title:"for Loop",desc:"Repeat code a set number of times.",task:"Print numbers 1 through 5 using a for loop.",starter:"// for loop\n",expected:"1\n2\n3\n4\n5",hint:"for(let i=1;i<=5;i++){ console.log(i); }",sol:"for (let i = 1; i <= 5; i++) {\n  console.log(i);\n}"},
+  {id:16,cat:"Conditionals & Loops",title:"while Loop",desc:"Loop while a condition is true.",task:"Use a while loop to print 1 through 5.",starter:"let i = 1;\n",expected:"1\n2\n3\n4\n5",hint:"while(i<=5){ console.log(i); i++; }",sol:"let i = 1;\nwhile (i <= 5) {\n  console.log(i);\n  i++;\n}"},
+  {id:17,cat:"Conditionals & Loops",title:"do...while Loop",desc:"Run at least once, then check condition.",task:"Use do...while to print 1 through 3.",starter:"let n = 1;\n",expected:"1\n2\n3",hint:"do{ console.log(n); n++; }while(n<=3);",sol:"let n = 1;\ndo {\n  console.log(n);\n  n++;\n} while (n <= 3);"},
+  {id:18,cat:"Conditionals & Loops",title:"break & continue",desc:"Control loop flow.",task:"Loop 1–10: skip 5 (continue) and stop at 8 (break).",starter:"// break and continue\n",expected:"1\n2\n3\n4\n6\n7",hint:"if(i===5) continue; if(i===8) break;",sol:"for (let i = 1; i <= 10; i++) {\n  if (i === 5) continue;\n  if (i === 8) break;\n  console.log(i);\n}"},
+  {id:19,cat:"Functions",title:"Function Declaration",desc:"Define reusable blocks of code.",task:"Declare greet(name) that logs 'Hello, [name]!'. Call with 'Alice'.",starter:"// Function declaration\n",expected:"Hello, Alice!",hint:"function greet(name){ console.log(`Hello, ${name}!`); }",sol:"function greet(name) {\n  console.log(`Hello, ${name}!`);\n}\ngreet('Alice');"},
+  {id:20,cat:"Functions",title:"Function Expression",desc:"Assign functions to variables.",task:"Create multiply(a,b) that returns a*b. Log multiply(4,5).",starter:"// Function expression\n",expected:"20",hint:"const multiply = function(a,b){ return a*b; };",sol:"const multiply = function(a, b) {\n  return a * b;\n};\nconsole.log(multiply(4, 5));"},
+  {id:21,cat:"Functions",title:"Arrow Functions",desc:"Concise function syntax with =>.",task:"Write square(n) that returns n*n. Log square(7).",starter:"// Arrow function\n",expected:"49",hint:"const square = n => n * n;",sol:"const square = n => n * n;\nconsole.log(square(7));"},
+  {id:22,cat:"Functions",title:"Default Parameters",desc:"Provide fallback values for parameters.",task:"Write greet(name='World') and call it with no arguments.",starter:"// Default parameters\n",expected:"Hello, World!",hint:"function greet(name = 'World'){ console.log(`Hello, ${name}!`); }",sol:"function greet(name = 'World') {\n  console.log(`Hello, ${name}!`);\n}\ngreet();"},
+  {id:23,cat:"Functions",title:"Rest Parameters",desc:"Collect multiple args into an array.",task:"Write sum(...nums) that logs total. Call sum(1,2,3,4).",starter:"// Rest parameters\n",expected:"10",hint:"function sum(...nums){ console.log(nums.reduce((a,b)=>a+b,0)); }",sol:"function sum(...nums) {\n  console.log(nums.reduce((a, b) => a + b, 0));\n}\nsum(1, 2, 3, 4);"},
+  {id:24,cat:"Functions",title:"Higher-Order Functions",desc:"Functions that accept or return functions.",task:"Write applyTwice(fn,x) that applies fn to x twice. Log applyTwice(n=>n*2, 3).",starter:"// Higher-order function\n",expected:"12",hint:"function applyTwice(fn,x){ return fn(fn(x)); }",sol:"function applyTwice(fn, x) {\n  return fn(fn(x));\n}\nconsole.log(applyTwice(n => n * 2, 3));"},
+  {id:25,cat:"Functions",title:"Closures",desc:"Functions that remember their outer scope.",task:"Write makeCounter() returning a function. Each call logs incremented count. Call 3 times.",starter:"// Closure\n",expected:"1\n2\n3",hint:"function makeCounter(){ let c=0; return ()=>{ c++; console.log(c); }; }",sol:"function makeCounter() {\n  let c = 0;\n  return () => { c++; console.log(c); };\n}\nconst counter = makeCounter();\ncounter();\ncounter();\ncounter();"},
+  {id:26,cat:"Functions",title:"IIFE",desc:"Immediately Invoked Function Expressions.",task:"Write an IIFE that logs 'IIFE ran!'.",starter:"// IIFE\n",expected:"IIFE ran!",hint:"(function(){ console.log('IIFE ran!'); })();",sol:"(function () {\n  console.log('IIFE ran!');\n})();"},
+  {id:27,cat:"Functions",title:"Recursion",desc:"Functions that call themselves.",task:"Write factorial(n) recursively. Log factorial(5).",starter:"// Recursion\n",expected:"120",hint:"function factorial(n){ return n<=1 ? 1 : n*factorial(n-1); }",sol:"function factorial(n) {\n  return n <= 1 ? 1 : n * factorial(n - 1);\n}\nconsole.log(factorial(5));"},
+  {id:28,cat:"Arrays",title:"Array Basics",desc:"Create and access array elements.",task:"Create fruits=['apple','banana','cherry']. Log the second item.",starter:"// Array basics\n",expected:"banana",hint:"const fruits=['apple','banana','cherry']; console.log(fruits[1]);",sol:"const fruits = ['apple','banana','cherry'];\nconsole.log(fruits[1]);"},
+  {id:29,cat:"Arrays",title:"Array Methods I",desc:"push, pop, shift, unshift.",task:"Start with [1,2,3]. Push 4, then pop. Log the array.",starter:"let arr = [1,2,3];\n",expected:"[1, 2, 3]",hint:"arr.push(4); arr.pop(); console.log(arr);",sol:"let arr = [1,2,3];\narr.push(4);\narr.pop();\nconsole.log(arr);"},
+  {id:30,cat:"Arrays",title:"forEach",desc:"Iterate over every element.",task:"Log each number in [10,20,30] using forEach.",starter:"const nums = [10,20,30];\n",expected:"10\n20\n30",hint:"nums.forEach(n => console.log(n));",sol:"const nums = [10,20,30];\nnums.forEach(n => console.log(n));"},
+  {id:31,cat:"Arrays",title:"map",desc:"Transform every element into a new array.",task:"Double each item in [1,2,3,4]. Log the result.",starter:"const nums = [1,2,3,4];\n",expected:"[2, 4, 6, 8]",hint:"console.log(nums.map(n => n * 2));",sol:"const nums = [1,2,3,4];\nconsole.log(nums.map(n => n * 2));"},
+  {id:32,cat:"Arrays",title:"filter",desc:"Keep only elements that pass a test.",task:"Filter even numbers from [1,2,3,4,5,6]. Log result.",starter:"const nums = [1,2,3,4,5,6];\n",expected:"[2, 4, 6]",hint:"console.log(nums.filter(n => n % 2 === 0));",sol:"const nums = [1,2,3,4,5,6];\nconsole.log(nums.filter(n => n % 2 === 0));"},
+  {id:33,cat:"Arrays",title:"reduce",desc:"Accumulate array values into one result.",task:"Sum [1,2,3,4,5] using reduce. Log total.",starter:"const nums = [1,2,3,4,5];\n",expected:"15",hint:"console.log(nums.reduce((acc,n)=>acc+n,0));",sol:"const nums = [1,2,3,4,5];\nconsole.log(nums.reduce((acc, n) => acc + n, 0));"},
+  {id:34,cat:"Arrays",title:"find & findIndex",desc:"Locate elements by condition.",task:"Find first number > 3 in [1,2,3,4,5]. Log value and index.",starter:"const nums = [1,2,3,4,5];\n",expected:"4\n3",hint:"console.log(nums.find(n=>n>3)); console.log(nums.findIndex(n=>n>3));",sol:"const nums = [1,2,3,4,5];\nconsole.log(nums.find(n => n > 3));\nconsole.log(nums.findIndex(n => n > 3));"},
+  {id:35,cat:"Arrays",title:"Spread & Destructuring",desc:"Unpack and spread arrays.",task:"Destructure first two items of [10,20,30]. Spread both arrays. Log x, y, combined.",starter:"const a = [10,20,30];\nconst b = [40,50];\n",expected:"10\n20\n[10, 20, 30, 40, 50]",hint:"const [x,y]=a; console.log(x); console.log(y); console.log([...a,...b]);",sol:"const a=[10,20,30];\nconst b=[40,50];\nconst [x,y]=a;\nconsole.log(x);\nconsole.log(y);\nconsole.log([...a,...b]);"},
+  {id:36,cat:"Arrays",title:"flat & flatMap",desc:"Flatten nested arrays.",task:"Flatten [[1,2],[3,[4,5]]] fully. Log result.",starter:"const nested = [[1,2],[3,[4,5]]];\n",expected:"[1, 2, 3, 4, 5]",hint:"console.log(nested.flat(Infinity));",sol:"const nested=[[1,2],[3,[4,5]]];\nconsole.log(nested.flat(Infinity));"},
+  {id:37,cat:"Arrays",title:"sort & reverse",desc:"Reorder array elements.",task:"Sort [3,1,4,1,5,9,2] numerically then reverse. Log both.",starter:"const nums = [3,1,4,1,5,9,2];\n",expected:"[1, 1, 2, 3, 4, 5, 9]\n[9, 5, 4, 3, 2, 1, 1]",hint:"const sorted=[...nums].sort((a,b)=>a-b); console.log(sorted); console.log([...sorted].reverse());",sol:"const nums=[3,1,4,1,5,9,2];\nconst sorted=[...nums].sort((a,b)=>a-b);\nconsole.log(sorted);\nconsole.log([...sorted].reverse());"},
+  {id:38,cat:"Objects",title:"Object Basics",desc:"Key-value data structures.",task:"Create person with name='Bob', age=25. Log both.",starter:"// Object basics\n",expected:"Bob\n25",hint:"const person={name:'Bob',age:25}; console.log(person.name); console.log(person.age);",sol:"const person={name:'Bob',age:25};\nconsole.log(person.name);\nconsole.log(person.age);"},
+  {id:39,cat:"Objects",title:"Object Methods",desc:"Functions as object properties.",task:"Add greet() to person that logs 'Hi, I am Bob'. Call it.",starter:"const person = { name: 'Bob' };\n",expected:"Hi, I am Bob",hint:"person.greet=function(){ console.log(`Hi, I am ${this.name}`); };",sol:"const person={name:'Bob'};\nperson.greet=function(){\n  console.log(`Hi, I am ${this.name}`);\n};\nperson.greet();"},
+  {id:40,cat:"Objects",title:"Object Destructuring",desc:"Extract properties into variables.",task:"Destructure name and age from {name:'Alice',age:28,city:'NY'}. Log them.",starter:"const obj = { name:'Alice', age:28, city:'NY' };\n",expected:"Alice\n28",hint:"const {name,age}=obj;",sol:"const obj={name:'Alice',age:28,city:'NY'};\nconst {name,age}=obj;\nconsole.log(name);\nconsole.log(age);"},
+  {id:41,cat:"Objects",title:"Object Spread & Assign",desc:"Merge and clone objects.",task:"Merge {a:1,b:2} and {c:3,d:4}. Log the result.",starter:"const obj1={a:1,b:2};\nconst obj2={c:3,d:4};\n",expected:"{a: 1, b: 2, c: 3, d: 4}",hint:"const merged={...obj1,...obj2}; console.log(merged);",sol:"const obj1={a:1,b:2};\nconst obj2={c:3,d:4};\nconst merged={...obj1,...obj2};\nconsole.log(merged);"},
+  {id:42,cat:"Objects",title:"Object.keys/values/entries",desc:"Iterate over object properties.",task:"For {x:10,y:20,z:30} log all keys, values, then entries.",starter:"const coords={x:10,y:20,z:30};\n",expected:"['x', 'y', 'z']\n[10, 20, 30]\n[['x', 10], ['y', 20], ['z', 30]]",hint:"console.log(Object.keys(coords)); ...",sol:"const coords={x:10,y:20,z:30};\nconsole.log(Object.keys(coords));\nconsole.log(Object.values(coords));\nconsole.log(Object.entries(coords));"},
+  {id:43,cat:"Objects",title:"this Keyword",desc:"Refer to the current object context.",task:"Create car with brand='Toyota' and describe() that logs 'I am a Toyota'. Call it.",starter:"// this keyword\n",expected:"I am a Toyota",hint:"const car={brand:'Toyota',describe(){console.log(`I am a ${this.brand}`);}}; car.describe();",sol:"const car={\n  brand:'Toyota',\n  describe(){\n    console.log(`I am a ${this.brand}`);\n  }\n};\ncar.describe();"},
+  {id:44,cat:"Objects",title:"Getters & Setters",desc:"Control property access.",task:"Create object with firstName='John', lastName='Doe' and getter fullName. Log fullName.",starter:"// Getters and Setters\n",expected:"John Doe",hint:"get fullName(){ return `${this.firstName} ${this.lastName}`; }",sol:"const person={\n  firstName:'John',\n  lastName:'Doe',\n  get fullName(){\n    return `${this.firstName} ${this.lastName}`;\n  }\n};\nconsole.log(person.fullName);"},
+  {id:45,cat:"Classes & OOP",title:"Class Declaration",desc:"Blueprint for creating objects.",task:"Create class Animal with constructor(name) and speak() that logs '[name] makes a sound'. Instantiate with 'Dog' and call speak().",starter:"// Class\n",expected:"Dog makes a sound",hint:"class Animal{ constructor(name){this.name=name;} speak(){console.log(`${this.name} makes a sound`);} }",sol:"class Animal{\n  constructor(name){this.name=name;}\n  speak(){console.log(`${this.name} makes a sound`);}\n}\nconst a=new Animal('Dog');\na.speak();"},
+  {id:46,cat:"Classes & OOP",title:"Inheritance & super",desc:"Extend classes to share behaviour.",task:"Create Dog extending Animal. Override speak() to log 'Dog barks'. Call it.",starter:"class Animal{\n  constructor(name){this.name=name;}\n  speak(){console.log(`${this.name} makes a sound`);}\n}\n",expected:"Dog barks",hint:"class Dog extends Animal{ speak(){ console.log('Dog barks'); } }",sol:"class Animal{\n  constructor(name){this.name=name;}\n  speak(){console.log(`${this.name} makes a sound`);}\n}\nclass Dog extends Animal{\n  speak(){console.log('Dog barks');}\n}\nconst d=new Dog('Rex');\nd.speak();"},
+  {id:47,cat:"Classes & OOP",title:"Static Methods",desc:"Methods called on the class itself.",task:"Add static create(name) to Animal returning new Animal(name). Log create('Cat').name.",starter:"class Animal{\n  constructor(name){this.name=name;}\n}\n",expected:"Cat",hint:"static create(name){ return new Animal(name); }",sol:"class Animal{\n  constructor(name){this.name=name;}\n  static create(name){return new Animal(name);}\n}\nconsole.log(Animal.create('Cat').name);"},
+  {id:48,cat:"Classes & OOP",title:"Private Fields",desc:"Encapsulate data with # fields.",task:"Create BankAccount with private #balance=0, deposit(n), getBalance(). Log balance after depositing 500.",starter:"// Private fields\n",expected:"500",hint:"class BankAccount{ #balance=0; deposit(n){this.#balance+=n;} getBalance(){return this.#balance;} }",sol:"class BankAccount{\n  #balance=0;\n  deposit(n){this.#balance+=n;}\n  getBalance(){return this.#balance;}\n}\nconst acc=new BankAccount();\nacc.deposit(500);\nconsole.log(acc.getBalance());"},
+  {id:49,cat:"DOM & Events",title:"Selecting Elements",desc:"Access DOM nodes (concept).",task:"Log the selector strings for: id='header', class='btn', tag 'p'.",starter:"// Log selector strings\n",expected:"#header\n.btn\np",hint:"console.log('#header'); console.log('.btn'); console.log('p');",sol:"console.log('#header');\nconsole.log('.btn');\nconsole.log('p');"},
+  {id:50,cat:"DOM & Events",title:"Event Types",desc:"Common browser event names.",task:"Log 6 common events: click, mouseover, keydown, submit, load, change.",starter:"// Log event types\n",expected:"click\nmouseover\nkeydown\nsubmit\nload\nchange",hint:"console.log('click'); ...",sol:"console.log('click');\nconsole.log('mouseover');\nconsole.log('keydown');\nconsole.log('submit');\nconsole.log('load');\nconsole.log('change');"},
+  {id:51,cat:"Async JS",title:"setTimeout",desc:"Delay code execution.",task:"Log 'start', schedule 'delayed' with setTimeout 0ms, then log 'end'. Show event-loop order.",starter:"// setTimeout\n",expected:"start\nend\ndelayed",hint:"console.log('start'); setTimeout(()=>console.log('delayed'),0); console.log('end');",sol:"console.log('start');\nsetTimeout(()=>console.log('delayed'),0);\nconsole.log('end');"},
+  {id:52,cat:"Async JS",title:"Callbacks",desc:"Functions passed for later use.",task:"Write fetchData(cb) that calls cb('data received'). Log the result.",starter:"// Callback pattern\n",expected:"data received",hint:"function fetchData(cb){ cb('data received'); }",sol:"function fetchData(cb){\n  cb('data received');\n}\nfetchData(result=>console.log(result));"},
+  {id:53,cat:"Async JS",title:"Promises",desc:"Represent eventual async values.",task:"Create a resolved Promise with 'Success!'. Log it in .then().",starter:"// Promise\n",expected:"Success!",hint:"Promise.resolve('Success!').then(v=>console.log(v));",sol:"Promise.resolve('Success!')\n  .then(v=>console.log(v));"},
+  {id:54,cat:"Async JS",title:"Promise Chaining",desc:"Chain .then() for sequential steps.",task:"Start with Promise.resolve(2), multiply by 3, add 10. Log the final value.",starter:"// Promise chain\n",expected:"16",hint:"Promise.resolve(2).then(v=>v*3).then(v=>v+10).then(v=>console.log(v));",sol:"Promise.resolve(2)\n  .then(v=>v*3)\n  .then(v=>v+10)\n  .then(v=>console.log(v));"},
+  {id:55,cat:"Async JS",title:"async / await",desc:"Write async code that reads like sync.",task:"Write async getData() that awaits a resolved promise of 'Hello async!' and logs it.",starter:"// async/await\n",expected:"Hello async!",hint:"async function getData(){ const v=await Promise.resolve('Hello async!'); console.log(v); }",sol:"async function getData(){\n  const v=await Promise.resolve('Hello async!');\n  console.log(v);\n}\ngetData();"},
+  {id:56,cat:"Async JS",title:"Promise.all",desc:"Run multiple promises concurrently.",task:"Use Promise.all with three resolved promises (1,2,3). Log the array.",starter:"// Promise.all\n",expected:"[1, 2, 3]",hint:"Promise.all([Promise.resolve(1),Promise.resolve(2),Promise.resolve(3)]).then(v=>console.log(v));",sol:"Promise.all([\n  Promise.resolve(1),\n  Promise.resolve(2),\n  Promise.resolve(3)\n]).then(v=>console.log(v));"},
+  {id:57,cat:"Async JS",title:"try / catch",desc:"Gracefully catch thrown errors.",task:"Async function that awaits a rejected promise inside try/catch. Log the error message 'Oops!'.",starter:"// try/catch\n",expected:"Oops!",hint:"async function run(){ try{ await Promise.reject(new Error('Oops!')); }catch(e){ console.log(e.message); } }",sol:"async function run(){\n  try{\n    await Promise.reject(new Error('Oops!'));\n  }catch(e){\n    console.log(e.message);\n  }\n}\nrun();"},
+  {id:58,cat:"Modules",title:"Named Exports",desc:"Export specific bindings from a module.",task:"Log the export statement to export add and subtract.",starter:"// Log export syntax\n",expected:"export { add, subtract };",hint:"console.log('export { add, subtract };');",sol:"console.log('export { add, subtract };');"},
+  {id:59,cat:"Modules",title:"Default Export",desc:"Export a single default value.",task:"Log the default export statement for function multiply.",starter:"// Default export\n",expected:"export default multiply;",hint:"console.log('export default multiply;');",sol:"console.log('export default multiply;');"},
+  {id:60,cat:"Advanced",title:"Symbol",desc:"Unique, immutable primitive values.",task:"Create two Symbols with description 'id'. Log equality and each description.",starter:"// Symbol\n",expected:"false\nid\nid",hint:"const s1=Symbol('id'); const s2=Symbol('id'); console.log(s1===s2); console.log(s1.description); console.log(s2.description);",sol:"const s1=Symbol('id');\nconst s2=Symbol('id');\nconsole.log(s1===s2);\nconsole.log(s1.description);\nconsole.log(s2.description);"},
+  {id:61,cat:"Advanced",title:"Map",desc:"Key-value pairs with any key type.",task:"Create Map, set 'name'='Eve' and 42='answer'. Log both values and size.",starter:"// Map\n",expected:"Eve\nanswer\n2",hint:"const m=new Map(); m.set('name','Eve'); m.set(42,'answer');",sol:"const m=new Map();\nm.set('name','Eve');\nm.set(42,'answer');\nconsole.log(m.get('name'));\nconsole.log(m.get(42));\nconsole.log(m.size);"},
+  {id:62,cat:"Advanced",title:"Set",desc:"Collections of unique values.",task:"Create Set from [1,2,2,3,3,3]. Log size and whether it has 2.",starter:"// Set\n",expected:"3\ntrue",hint:"const s=new Set([1,2,2,3,3,3]); console.log(s.size); console.log(s.has(2));",sol:"const s=new Set([1,2,2,3,3,3]);\nconsole.log(s.size);\nconsole.log(s.has(2));"},
+  {id:63,cat:"Advanced",title:"WeakMap & WeakRef",desc:"Weakly held references.",task:"Log: 'WeakMap: private data for objects' and 'WeakRef: hold object without preventing GC'.",starter:"// WeakMap and WeakRef\n",expected:"WeakMap: private data for objects\nWeakRef: hold object without preventing GC",hint:"console.log('WeakMap: private data for objects'); console.log('WeakRef: hold object without preventing GC');",sol:"console.log('WeakMap: private data for objects');\nconsole.log('WeakRef: hold object without preventing GC');"},
+  {id:64,cat:"Advanced",title:"Iterators & Iterables",desc:"Make any object iterable.",task:"Create a range iterable from 1 to 3 using Symbol.iterator. Log each value with for...of.",starter:"// Custom iterable\n",expected:"1\n2\n3",hint:"const range={[Symbol.iterator](){ let i=1; return {next(){ return i<=3?{value:i++,done:false}:{done:true}; }}; }};",sol:"const range={\n  [Symbol.iterator](){\n    let i=1;\n    return {\n      next(){\n        return i<=3?{value:i++,done:false}:{done:true};\n      }\n    };\n  }\n};\nfor(const n of range) console.log(n);"},
+  {id:65,cat:"Advanced",title:"Generators",desc:"Functions that yield multiple values lazily.",task:"Write generator function* count() that yields 1,2,3. Log all values.",starter:"// Generator\n",expected:"1\n2\n3",hint:"function* count(){ yield 1; yield 2; yield 3; } for(const v of count()) console.log(v);",sol:"function* count(){\n  yield 1;\n  yield 2;\n  yield 3;\n}\nfor(const v of count()) console.log(v);"},
+  {id:66,cat:"Advanced",title:"Proxy",desc:"Intercept and customise object operations.",task:"Create a Proxy on {name:'Alice'} with a get trap logging 'Getting: [prop]' then returning value.",starter:"// Proxy\n",expected:"Getting: name\nAlice",hint:"const p=new Proxy({name:'Alice'},{get(t,prop){console.log(`Getting: ${prop}`);return t[prop];}});",sol:"const obj={name:'Alice'};\nconst p=new Proxy(obj,{\n  get(target,prop){\n    console.log(`Getting: ${prop}`);\n    return target[prop];\n  }\n});\nconsole.log(p.name);"},
+  {id:67,cat:"Advanced",title:"Reflect",desc:"Meta-programming operations.",task:"Use Reflect.ownKeys on {a:1,b:2} and log the result.",starter:"// Reflect\n",expected:"['a', 'b']",hint:"console.log(Reflect.ownKeys({a:1,b:2}));",sol:"console.log(Reflect.ownKeys({a:1,b:2}));"},
+  {id:68,cat:"Advanced",title:"Error Types",desc:"Know the built-in error classes.",task:"Log the name of: new TypeError(), new RangeError(), new ReferenceError().",starter:"// Error types\n",expected:"TypeError\nRangeError\nReferenceError",hint:"console.log(new TypeError().name); ...",sol:"console.log(new TypeError().name);\nconsole.log(new RangeError().name);\nconsole.log(new ReferenceError().name);"},
+  {id:69,cat:"Advanced",title:"Regular Expressions",desc:"Pattern matching with RegExp.",task:"Test if 'hello123' matches /^[a-z]+\\d+$/. Log result and all digits.",starter:"const str='hello123';\n",expected:"true\n['1', '2', '3']",hint:"console.log(/^[a-z]+\\d+$/.test(str)); console.log(str.match(/\\d/g));",sol:"const str='hello123';\nconsole.log(/^[a-z]+\\d+$/.test(str));\nconsole.log(str.match(/\\d/g));"},
+  {id:70,cat:"Advanced",title:"Memoization",desc:"Cache results to optimise performance.",task:"Write memoize(fn). Apply to square(n). Call with 5 twice, logging 'Computing 5' only once.",starter:"// Memoization\n",expected:"Computing 5\n25\n25",hint:"function memoize(fn){ const cache={}; return n=>{ if(cache[n]!==undefined) return cache[n]; console.log('Computing',n); return cache[n]=fn(n); }; }",sol:"function memoize(fn){\n  const cache={};\n  return n=>{\n    if(cache[n]!==undefined) return cache[n];\n    console.log('Computing',n);\n    return (cache[n]=fn(n));\n  };\n}\nconst square=memoize(n=>n*n);\nconsole.log(square(5));\nconsole.log(square(5));"},
+  {id:71,cat:"Design Patterns",title:"Singleton",desc:"Ensure only one instance exists.",task:"Implement Singleton class. Log whether two getInstance() calls return the same object.",starter:"// Singleton\n",expected:"true",hint:"class Singleton{ static #inst; static getInstance(){ return this.#inst??(this.#inst=new Singleton()); } }",sol:"class Singleton{\n  static #inst;\n  static getInstance(){\n    return this.#inst??(this.#inst=new Singleton());\n  }\n}\nconsole.log(Singleton.getInstance()===Singleton.getInstance());"},
+  {id:72,cat:"Design Patterns",title:"Observer Pattern",desc:"Notify multiple subscribers of changes.",task:"Build EventEmitter with on() and emit(). Subscribe to 'data', emit 'hello'. Log received value.",starter:"// Observer\n",expected:"hello",hint:"class EventEmitter{ constructor(){this.events={};} on(e,cb){(this.events[e]??=[]).push(cb);} emit(e,d){(this.events[e]??[]).forEach(cb=>cb(d));} }",sol:"class EventEmitter{\n  constructor(){this.events={};}\n  on(e,cb){(this.events[e]??=[]).push(cb);}\n  emit(e,d){(this.events[e]??[]).forEach(cb=>cb(d));}\n}\nconst em=new EventEmitter();\nem.on('data',v=>console.log(v));\nem.emit('data','hello');"},
+  {id:73,cat:"Design Patterns",title:"Factory Pattern",desc:"Create objects without specifying exact class.",task:"Create shapeFactory(type) returning area() for 'circle' (r=5) and 'square' (s=4). Log both areas.",starter:"// Factory\n",expected:"78.54\n16",hint:"function shapeFactory(type){ if(type==='circle') return {area:()=>(Math.PI*5*5).toFixed(2)}; return {area:()=>16}; }",sol:"function shapeFactory(type){\n  if(type==='circle') return {area:()=>(Math.PI*5*5).toFixed(2)};\n  return {area:()=>16};\n}\nconsole.log(shapeFactory('circle').area());\nconsole.log(shapeFactory('square').area());"},
+  {id:74,cat:"Functional JS",title:"Pure Functions",desc:"No side-effects, same input → same output.",task:"Write pure add(a,b). Log add(3,4) twice.",starter:"// Pure function\n",expected:"7\n7",hint:"const add=(a,b)=>a+b;",sol:"const add=(a,b)=>a+b;\nconsole.log(add(3,4));\nconsole.log(add(3,4));"},
+  {id:75,cat:"Functional JS",title:"Function Composition",desc:"Combine functions: f(g(x)).",task:"Compose double(x*2) and addOne(x+1). Apply to 5. Log result.",starter:"// Compose\n",expected:"11",hint:"const compose=(f,g)=>x=>f(g(x));",sol:"const compose=(f,g)=>x=>f(g(x));\nconst double=x=>x*2;\nconst addOne=x=>x+1;\nconsole.log(compose(double,addOne)(5));"},
+  {id:76,cat:"Functional JS",title:"Currying",desc:"Transform multi-arg functions into unary chains.",task:"Curry add(a)(b)(c) that sums three numbers. Log add(1)(2)(3).",starter:"// Currying\n",expected:"6",hint:"const add=a=>b=>c=>a+b+c;",sol:"const add=a=>b=>c=>a+b+c;\nconsole.log(add(1)(2)(3));"},
+  {id:77,cat:"Functional JS",title:"Immutability",desc:"Never mutate; return new values.",task:"Given obj={x:1,y:2}, create updated copy with x=99 without mutating original. Log both.",starter:"const obj={x:1,y:2};\n",expected:"{x: 1, y: 2}\n{x: 99, y: 2}",hint:"const updated={...obj,x:99}; console.log(obj); console.log(updated);",sol:"const obj={x:1,y:2};\nconst updated={...obj,x:99};\nconsole.log(obj);\nconsole.log(updated);"},
+  {id:78,cat:"Final Challenge",title:"Pipeline Challenge",desc:"Chain functional utilities for a real task.",task:"Filter students with score≥70, map to 'Name: [name]', sort alphabetically, log each.",starter:"const students=[\n  {name:'A',score:45},\n  {name:'B',score:82},\n  {name:'C',score:73},\n  {name:'D',score:60}\n];\n",expected:"Name: B\nName: C",hint:"students.filter(s=>s.score>=70).map(s=>`Name: ${s.name}`).sort().forEach(s=>console.log(s));",sol:"const students=[\n  {name:'A',score:45},\n  {name:'B',score:82},\n  {name:'C',score:73},\n  {name:'D',score:60}\n];\nstudents.filter(s=>s.score>=70).map(s=>`Name: ${s.name}`).sort().forEach(s=>console.log(s));"},
+];
+
+const CATS = [...new Set(LEVELS.map(l=>l.cat))];
+const CAT_COLOR={
+  "Beginner":       {bg:"#14532d22",border:"#16a34a",text:"#4ade80",badge:"#166534",badgeText:"#bbf7d0"},
+  "Conditionals & Loops":{bg:"#1e3a5f22",border:"#2563eb",text:"#60a5fa",badge:"#1e3a8a",badgeText:"#bfdbfe"},
+  "Functions":      {bg:"#3b0764 22",border:"#9333ea",text:"#c084fc",badge:"#4c1d95",badgeText:"#e9d5ff"},
+  "Arrays":         {bg:"#42330022",border:"#ca8a04",text:"#facc15",badge:"#713f12",badgeText:"#fef08a"},
+  "Objects":        {bg:"#43150022",border:"#ea580c",text:"#fb923c",badge:"#7c2d12",badgeText:"#fed7aa"},
+  "Classes & OOP":  {bg:"#450a0a22",border:"#dc2626",text:"#f87171",badge:"#7f1d1d",badgeText:"#fecaca"},
+  "DOM & Events":   {bg:"#08303722",border:"#0891b2",text:"#22d3ee",badge:"#164e63",badgeText:"#a5f3fc"},
+  "Async JS":       {bg:"#0a0a3a22",border:"#4f46e5",text:"#818cf8",badge:"#312e81",badgeText:"#c7d2fe"},
+  "Modules":        {bg:"#00262622",border:"#0d9488",text:"#2dd4bf",badge:"#134e4a",badgeText:"#99f6e4"},
+  "Advanced":       {bg:"#2d001522",border:"#e11d48",text:"#fb7185",badge:"#881337",badgeText:"#fecdd3"},
+  "Design Patterns":{bg:"#2e001d22",border:"#a21caf",text:"#e879f9",badge:"#701a75",badgeText:"#f5d0fe"},
+  "Functional JS":  {bg:"#14200022",border:"#65a30d",text:"#a3e635",badge:"#365314",badgeText:"#d9f99d"},
+  "Final Challenge":{bg:"#292000 22",border:"#d97706",text:"#fbbf24",badge:"#78350f",badgeText:"#fde68a"},
+};
+
+function simulate(code){
+  const logs=[];
+  const fakeConsole={
+    log:(...a)=>logs.push(a.map(v=>{
+      if(Array.isArray(v)) return JSON.stringify(v).replace(/"/g,"'").replace(/,/g,', ');
+      if(v!==null && typeof v==='object'){
+        const s=JSON.stringify(v).replace(/"/g,"'").replace(/,/g,', ');
+        return s;
+      }
+      return String(v);
+    }).join(' '))
+  };
+  try{
+    // eslint-disable-next-line no-new-func
+    new Function('console','setTimeout',code)(fakeConsole,(fn,ms)=>{
+      if(ms===0||ms===undefined) setTimeout(()=>{ try{fn();}catch(e){} },0);
+    });
+    return {out:logs.join('\n'),async:false};
+  }catch(e){
+    return {out:null,err:e.message};
+  }
+}
+
+// Icons as SVG components
+const IconPlay=()=><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>;
+const IconReset=()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>;
+const IconHint=()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>;
+const IconMenu=()=><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>;
+const IconX=()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
+const IconCheck=()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>;
+const IconChevLeft=()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>;
+const IconChevRight=()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>;
+
+function App(){
+  const [curId,setCurId]=useState(1);
+  const [code,setCode]=useState(LEVELS[0].starter);
+  const [done,setDone]=useState(()=>{
+    try{ const s=localStorage.getItem('jslingo_done'); return s?new Set(JSON.parse(s)):new Set(); }catch{ return new Set(); }
+  });
+  const [streak,setStreak]=useState(0);
+  const [fb,setFb]=useState(null);
+  const [showHint,setShowHint]=useState(false);
+  const [sidebar,setSidebar]=useState(false);
+  const [loading,setLoading]=useState(false);
+  const [catFilter,setCatFilter]=useState("All");
+  const [showSolution,setShowSolution]=useState(false);
+
+  const lv=LEVELS.find(l=>l.id===curId);
+  const cc=CAT_COLOR[lv.cat]||CAT_COLOR["Beginner"];
+  const pct=Math.round((done.size/LEVELS.length)*100);
+
+  useEffect(()=>{
+    setCode(lv.starter);
+    setFb(null);
+    setShowHint(false);
+    setShowSolution(false);
+  },[curId]);
+
+  useEffect(()=>{
+    try{ localStorage.setItem('jslingo_done',JSON.stringify([...done])); }catch{}
+  },[done]);
+
+  const goTo=useCallback((id)=>{ setCurId(id); setSidebar(false); },[]);
+
+  const handleRun=async()=>{
+    setLoading(true); setFb(null);
+    const {out}=simulate(code);
+
+    const tryEval=async()=>{
+      if(!ANTHROPIC_API_KEY){
+        // local only
+        await new Promise(r=>setTimeout(r,50));
+        const asyncOut=simulate(code).out;
+        const pass=(asyncOut||'').trim()===(lv.expected||'').trim();
+        if(pass){ setDone(prev=>{const n=new Set([...prev,curId]); return n;}); setStreak(s=>s+1); setFb({type:'success',msg:'🎉 Correct! Well done.',out:asyncOut}); }
+        else { setStreak(0); setFb({type:'error',msg:'Not quite — check your output.',out:asyncOut,exp:lv.expected}); }
+        return;
+      }
+      try{
+        const resp=await fetch("https://api.anthropic.com/v1/messages",{
+          method:"POST",
+          headers:{"Content-Type":"application/json","x-api-key":ANTHROPIC_API_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+          body:JSON.stringify({
+            model:"claude-sonnet-4-20250514",max_tokens:500,
+            messages:[{role:"user",content:`You evaluate a JS challenge.
+TASK: ${lv.task}
+EXPECTED:
+${lv.expected}
+USER CODE:
+${code}
+LOCAL OUTPUT: ${out??'(error)'}
+Is the code correct? Consider semantic equivalence. Reply ONLY valid JSON no markdown:
+{"correct":true/false,"feedback":"1-2 sentences","tip":"short tip or empty"}`}]
+          })
+        });
+        const d=await resp.json();
+        const txt=d.content?.map(b=>b.text||'').join('').replace(/```json|```/g,'').trim();
+        const ev=JSON.parse(txt);
+        if(ev.correct){ setDone(prev=>new Set([...prev,curId])); setStreak(s=>s+1); setFb({type:'success',msg:'🎉 Correct!',detail:ev.feedback,tip:ev.tip,out}); }
+        else{ setStreak(0); setFb({type:'error',msg:'Not quite.',detail:ev.feedback,tip:ev.tip,out,exp:lv.expected}); }
+      }catch{
+        // fallback
+        const finalOut=simulate(code).out;
+        const pass=(finalOut||'').trim()===(lv.expected||'').trim();
+        if(pass){ setDone(prev=>new Set([...prev,curId])); setStreak(s=>s+1); setFb({type:'success',msg:'🎉 Correct!',out:finalOut}); }
+        else{ setStreak(0); setFb({type:'error',msg:'Not quite.',out:finalOut,exp:lv.expected}); }
+      }
+    };
+    // Give setTimeout(,0) a chance to run
+    setTimeout(async()=>{ await tryEval(); setLoading(false); },80);
+  };
+
+  const handleReset=()=>{ setCode(lv.starter); setFb(null); setShowHint(false); setShowSolution(false); };
+
+  const filtered=catFilter==="All"?LEVELS:LEVELS.filter(l=>l.cat===catFilter);
+
+  const s={
+    app:{display:'flex',height:'100vh',overflow:'hidden',background:'#0a0a0f'},
+    // sidebar
+    sb:{position:'fixed',top:0,left:0,bottom:0,zIndex:50,width:272,background:'#111827',borderRight:'1px solid #1f2937',display:'flex',flexDirection:'column',transition:'transform 0.3s',transform:sidebar?'translateX(0)':'translateX(-100%)'},
+    sbHead:{padding:'16px',borderBottom:'1px solid #1f2937',display:'flex',justifyContent:'space-between',alignItems:'center'},
+    sbProgress:{padding:'12px 16px',borderBottom:'1px solid #1f2937'},
+    sbCats:{padding:'8px 12px',borderBottom:'1px solid #1f2937',display:'flex',flexWrap:'wrap',gap:4,maxHeight:80,overflowY:'auto'},
+    sbList:{flex:1,overflowY:'auto',paddingTop:4,paddingBottom:4},
+    // main
+    main:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',marginLeft:0},
+    topBar:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 16px',background:'#111827',borderBottom:'1px solid #1f2937',flexShrink:0},
+    content:{flex:1,display:'flex',overflow:'hidden',flexDirection:'column'},
+    // panels
+    leftPanel:{padding:20,overflowY:'auto',background:'#0a0a0f',borderBottom:'1px solid #1f2937',flexShrink:0},
+    rightPanel:{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'},
+    editorBar:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 16px',background:'#111827',borderBottom:'1px solid #1f2937',flexShrink:0},
+    editor:{flex:1,width:'100%',background:'#060612',color:'#86efac',fontFamily:"'Courier New',monospace",fontSize:13,padding:16,border:'none',outline:'none',resize:'none',lineHeight:1.7},
+    navBar:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 16px',background:'#111827',borderTop:'1px solid #1f2937',flexShrink:0},
+    btn:(bg,clr)=>({display:'flex',alignItems:'center',gap:6,padding:'6px 14px',background:bg,color:clr,border:'none',borderRadius:6,cursor:'pointer',fontSize:12,fontWeight:600}),
+    pill:(bg,clr)=>({display:'flex',alignItems:'center',gap:6,padding:'4px 12px',background:bg,borderRadius:20,fontSize:12,color:clr,fontWeight:600}),
+  };
+
+  return (
+    <div style={s.app}>
+      {/* Sidebar */}
+      <div style={s.sb}>
+        <div style={s.sbHead}>
+          <div>
+            <div style={{fontSize:20,fontWeight:900,color:'#facc15',letterSpacing:'-0.5px'}}>JSLingo</div>
+            <div style={{fontSize:11,color:'#6b7280',marginTop:2}}>78 Levels · Complete JavaScript</div>
+          </div>
+          <button onClick={()=>setSidebar(false)} style={{background:'none',border:'none',color:'#9ca3af',cursor:'pointer'}}><IconX/></button>
+        </div>
+        <div style={s.sbProgress}>
+          <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:'#9ca3af',marginBottom:6}}>
+            <span>{done.size}/{LEVELS.length} completed</span>
+            <span style={{color:'#facc15',fontWeight:700}}>{pct}%</span>
+          </div>
+          <div style={{background:'#1f2937',borderRadius:4,height:6}}>
+            <div style={{background:'#facc15',height:6,borderRadius:4,width:pct+'%',transition:'width 0.5s'}}/>
+          </div>
+        </div>
+        <div style={s.sbCats}>
+          {["All",...CATS].map(c=>(
+            <button key={c} onClick={()=>setCatFilter(c)} style={{padding:'2px 8px',borderRadius:12,border:'none',cursor:'pointer',fontSize:11,fontWeight:catFilter===c?700:400,background:catFilter===c?'#facc15':'#1f2937',color:catFilter===c?'#111':'#9ca3af'}}>
+              {c}
+            </button>
+          ))}
+        </div>
+        <div style={s.sbList}>
+          {filtered.map(l=>{
+            const isDone=done.has(l.id), isCur=l.id===curId;
+            const c2=CAT_COLOR[l.cat]||CAT_COLOR["Beginner"];
+            return (
+              <button key={l.id} onClick={()=>goTo(l.id)} style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'10px 16px',background:isCur?'#1f2937':'transparent',border:'none',borderLeft:isCur?'2px solid #facc15':'2px solid transparent',cursor:'pointer',textAlign:'left'}}>
+                <div style={{width:26,height:26,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,flexShrink:0,background:isDone?'#16a34a':isCur?'#facc15':'#1f2937',color:isDone||isCur?'#fff':'#9ca3af'}}>
+                  {isDone?<IconCheck/>:l.id}
+                </div>
+                <div style={{minWidth:0}}>
+                  <div style={{fontSize:13,fontWeight:500,color:isCur?'#fff':isDone?'#4ade80':'#d1d5db',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{l.title}</div>
+                  <div style={{fontSize:11,color:c2.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{l.cat}</div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Overlay */}
+      {sidebar&&<div onClick={()=>setSidebar(false)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',zIndex:40}}/>}
+
+      {/* Main */}
+      <div style={s.main}>
+        {/* Top bar */}
+        <div style={s.topBar}>
+          <div style={{display:'flex',alignItems:'center',gap:12}}>
+            <button onClick={()=>setSidebar(true)} style={{background:'none',border:'none',color:'#9ca3af',cursor:'pointer',display:'flex'}}><IconMenu/></button>
+            <div style={{padding:'3px 10px',borderRadius:12,background:cc.badge,color:cc.badgeText,fontSize:11,fontWeight:700}}>{lv.cat}</div>
+            <div style={{fontSize:13,color:'#6b7280'}}>Level {lv.id} / {LEVELS.length}</div>
+          </div>
+          <div style={{display:'flex',alignItems:'center',gap:10}}>
+            <div style={s.pill('#78350f44','#fbbf24')}>🔥 {streak}</div>
+            <div style={s.pill('#14532d44','#4ade80')}>🏆 {done.size}</div>
+          </div>
+        </div>
+
+        {/* Content — stacked on mobile, side-by-side on desktop via flex-direction */}
+        <div style={{...s.content,flexDirection:'row'}}>
+          {/* Left: task */}
+          <div style={{...s.leftPanel,width:'40%',minWidth:280,borderBottom:'none',borderRight:'1px solid #1f2937'}}>
+            <h2 style={{fontSize:22,fontWeight:900,color:'#f9fafb',marginBottom:4}}>{lv.title}</h2>
+            <p style={{fontSize:13,color:'#9ca3af',marginBottom:16}}>{lv.desc}</p>
+
+            <div style={{background:cc.bg,borderLeft:`4px solid ${cc.border}`,borderRadius:'0 8px 8px 0',padding:'12px 14px',marginBottom:16}}>
+              <div style={{fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:1,color:cc.text,marginBottom:6,opacity:.7}}>Task</div>
+              <p style={{fontSize:13,color:cc.text,lineHeight:1.6}}>{lv.task}</p>
+            </div>
+
+            <div style={{background:'#111827',borderRadius:8,padding:'12px 14px',marginBottom:16}}>
+              <div style={{fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:1,color:'#6b7280',marginBottom:6}}>Expected Output</div>
+              <pre style={{fontSize:12,color:'#4ade80',fontFamily:"'Courier New',monospace",whiteSpace:'pre-wrap',margin:0}}>{lv.expected}</pre>
+            </div>
+
+            <button onClick={()=>setShowHint(h=>!h)} style={{display:'flex',alignItems:'center',gap:6,background:'none',border:'none',color:'#fbbf24',cursor:'pointer',fontSize:13,fontWeight:600,marginBottom:showHint?8:0}}>
+              <IconHint/> {showHint?'Hide hint':'Show hint'}
+            </button>
+            {showHint&&<div style={{background:'#292000',border:'1px solid #78350f',borderRadius:8,padding:'10px 14px',marginBottom:12}}>
+              <code style={{fontSize:12,color:'#fde68a',fontFamily:"'Courier New',monospace"}}>{lv.hint}</code>
+            </div>}
+
+            <button onClick={()=>setShowSolution(s=>!s)} style={{display:'flex',alignItems:'center',gap:6,background:'none',border:'none',color:'#818cf8',cursor:'pointer',fontSize:13,fontWeight:600,marginBottom:showSolution?8:0}}>
+              📖 {showSolution?'Hide solution':'Show solution'}
+            </button>
+            {showSolution&&<div style={{background:'#0f0f2a',border:'1px solid #312e81',borderRadius:8,padding:'10px 14px',marginBottom:12}}>
+              <pre style={{fontSize:12,color:'#c7d2fe',fontFamily:"'Courier New',monospace",whiteSpace:'pre-wrap',margin:0}}>{lv.sol}</pre>
+            </div>}
+
+            {fb&&<div style={{marginTop:12,padding:'12px 14px',borderRadius:8,border:`1px solid ${fb.type==='success'?'#166534':'#7f1d1d'}`,background:fb.type==='success'?'#052e1622':'#450a0a22'}}>
+              <p style={{fontWeight:700,marginBottom:6,color:fb.type==='success'?'#4ade80':'#f87171'}}>{fb.msg}</p>
+              {fb.detail&&<p style={{fontSize:12,color:'#d1d5db',marginBottom:6}}>{fb.detail}</p>}
+              {fb.out!=null&&<div style={{marginBottom:6}}>
+                <div style={{fontSize:11,color:'#6b7280',marginBottom:3}}>Your output:</div>
+                <pre style={{fontSize:12,fontFamily:"'Courier New',monospace",background:'#111827',padding:'6px 10px',borderRadius:6,color:'#e5e7eb',whiteSpace:'pre-wrap',margin:0}}>{fb.out||'(empty)'}</pre>
+              </div>}
+              {fb.exp&&<div>
+                <div style={{fontSize:11,color:'#6b7280',marginBottom:3}}>Expected:</div>
+                <pre style={{fontSize:12,fontFamily:"'Courier New',monospace",background:'#111827',padding:'6px 10px',borderRadius:6,color:'#4ade80',whiteSpace:'pre-wrap',margin:0}}>{fb.exp}</pre>
+              </div>}
+              {fb.tip&&<p style={{fontSize:11,color:'#93c5fd',marginTop:8}}>💡 {fb.tip}</p>}
+            </div>}
+          </div>
+
+          {/* Right: editor */}
+          <div style={s.rightPanel}>
+            <div style={s.editorBar}>
+              <div style={{display:'flex',alignItems:'center',gap:6}}>
+                <div style={{width:10,height:10,borderRadius:'50%',background:'#ef4444'}}/>
+                <div style={{width:10,height:10,borderRadius:'50%',background:'#f59e0b'}}/>
+                <div style={{width:10,height:10,borderRadius:'50%',background:'#22c55e'}}/>
+                <span style={{marginLeft:8,fontSize:12,color:'#6b7280'}}>script.js</span>
+              </div>
+              <div style={{display:'flex',gap:8}}>
+                <button onClick={handleReset} style={s.btn('#1f2937','#9ca3af')}><IconReset/> Reset</button>
+                <button onClick={handleRun} disabled={loading} style={s.btn(loading?'#78350f':'#facc15',loading?'#fbbf24':'#111')}>
+                  <IconPlay/> {loading?'Running…':'Run Code'}
+                </button>
+              </div>
+            </div>
+            <textarea
+              value={code}
+              onChange={e=>setCode(e.target.value)}
+              spellCheck={false}
+              style={s.editor}
+              placeholder="// Write your JavaScript here…"
+            />
+            <div style={s.navBar}>
+              <button onClick={()=>curId>1&&goTo(curId-1)} disabled={curId===1} style={{...s.btn('#1f2937','#9ca3af'),opacity:curId===1?0.3:1}}>
+                <IconChevLeft/> Prev
+              </button>
+              <div style={{display:'flex',alignItems:'center',gap:8}}>
+                {done.has(curId)&&<span style={{color:'#4ade80',fontSize:12}}>✓ Completed</span>}
+                <span style={{color:'#6b7280',fontSize:12}}>{curId}/{LEVELS.length}</span>
+              </div>
+              <button onClick={()=>curId<LEVELS.length&&goTo(curId+1)} disabled={curId===LEVELS.length} style={{...s.btn('#1f2937','#9ca3af'),opacity:curId===LEVELS.length?0.3:1}}>
+                Next <IconChevRight/>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
